@@ -1,8 +1,38 @@
 from fastapi import APIRouter
 from app.models.schemas import RouteResponse
+from pydantic import BaseModel
 import random
 
 router = APIRouter()
+
+class RouteRequest(BaseModel):
+    start_lat: float
+    start_lng: float
+    end_lat: float
+    end_lng: float
+
+@router.post("/calculate-route")
+async def calculate_route(req: RouteRequest):
+    # A pseudo-Manhattan routing algorithm to simulate city block navigation
+    
+    # Step 1: Start point
+    route = [[req.start_lat, req.start_lng]]
+    
+    # Step 2: Intermediate point 1 (Vertical movement)
+    mid_lat = req.start_lat + (req.end_lat - req.start_lat) * 0.5
+    route.append([mid_lat, req.start_lng])
+    
+    # Step 3: Intermediate point 2 (Horizontal movement)
+    route.append([mid_lat, req.end_lng])
+    
+    # Step 4: End point
+    route.append([req.end_lat, req.end_lng])
+    
+    return {
+        "route": route,
+        "estimated_time_saved": f"{random.randint(4, 12)} mins",
+        "traffic_level": random.choice(["low", "moderate", "high"])
+    }
 
 @router.get("/get-route", response_model=RouteResponse)
 async def get_route():

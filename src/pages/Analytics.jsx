@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import { BrainCircuit, TrendingUp, Zap, Clock } from 'lucide-react';
 import CongestionChart from '../components/CongestionChart';
+import NodeSelector from '../components/NodeSelector';
 
 const COLORS = ['#06b6d4', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444'];
 const vehicleData = [
@@ -29,6 +30,8 @@ const PredictionCard = ({ icon, title, value, subtext, color }) => (
 
 const Analytics = () => {
   const [chartData, setChartData] = useState([]);
+  const [selectedNode, setSelectedNode] = useState('ALL');
+  const [predictionHours, setPredictionHours] = useState(0);
 
   useEffect(() => {
     setChartData(Array.from({length: 15}, (_, i) => {
@@ -61,6 +64,27 @@ const Analytics = () => {
     return () => clearInterval(interval);
   }, [chartData.length]);
 
+  const nodeFactor = selectedNode === 'ALL' ? 1 : parseInt(selectedNode.replace('NODE ', '')) * 0.25 + 0.5;
+  
+  const displayChartData = (() => {
+    let baseData = [...chartData];
+    if (predictionHours > 0) {
+      baseData = baseData.map((d, i) => {
+        const [h, m] = d.time.split(':');
+        const futureH = (parseInt(h) + parseInt(predictionHours)) % 24;
+        const timeOffset = parseInt(predictionHours);
+        const jitter = Math.sin((i + timeOffset) * 0.8) * (15 + timeOffset * 2);
+        return {
+          time: `${futureH}:${m}`,
+          value: Math.max(10, Math.min(95, d.value + jitter))
+        };
+      });
+    }
+    return baseData.map(d => ({ ...d, value: Math.min(100, Math.round(d.value * nodeFactor)) }));
+  })();
+
+  const displayVehicleData = vehicleData.map(d => ({ ...d, value: Math.round(d.value * nodeFactor) }));
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -68,7 +92,7 @@ const Analytics = () => {
       transition={{ duration: 0.5 }}
       className="flex-1 flex flex-col h-full gap-6"
     >
-      <div className="flex justify-between items-end">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
           <h2 className="text-2xl md:text-3xl font-bold text-white tracking-wide flex items-center gap-3">
             <BrainCircuit className="text-purple-400" size={28} />
@@ -77,9 +101,12 @@ const Analytics = () => {
           <p className="text-gray-400 text-sm mt-1">Deep learning insights, predictive congestion modeling, and vehicle distribution</p>
         </div>
         
-        <div className="glass-panel px-4 py-2 rounded-lg border-cyan-500/30 flex items-center gap-3 hidden md:flex">
-          <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></div>
-          <span className="text-xs text-gray-300 font-mono">MODEL: YOLOv8-TRAFFIC-V2</span>
+        <div className="flex flex-col items-end gap-3 w-full md:w-auto">
+          <NodeSelector selectedNode={selectedNode} onSelectNode={setSelectedNode} />
+          <div className="glass-panel px-4 py-2 rounded-lg border-cyan-500/30 flex items-center gap-3 hidden md:flex">
+            <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></div>
+            <span className="text-xs text-gray-300 font-mono">MODEL: YOLOv8-TRAFFIC-V2</span>
+          </div>
         </div>
       </div>
 
@@ -92,9 +119,32 @@ const Analytics = () => {
 
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 glass-panel p-4 rounded-2xl border-cyan-500/20 flex flex-col min-h-[350px]">
-          <h3 className="text-sm font-bold text-gray-300 tracking-widest mb-4">REAL-TIME CONGESTION INDEX</h3>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-sm font-bold text-gray-300 tracking-widest">
+              {predictionHours > 0 ? `PREDICTED CONGESTION (+${predictionHours} HOURS)` : "REAL-TIME CONGESTION INDEX"}
+            </h3>
+            {predictionHours > 0 && (
+              <span className="text-xs bg-purple-500/20 text-purple-400 px-2 py-1 rounded font-mono animate-pulse border border-purple-500/30">AI PREDICTION MODE</span>
+            )}
+          </div>
+          
           <div className="flex-1">
-            <CongestionChart data={chartData} />
+            <CongestionChart data={displayChartData} />
+          </div>
+          
+          <div className="mt-4 pt-4 border-t border-cyan-500/20">
+            <div className="flex justify-between text-xs font-mono text-gray-400 mb-2">
+              <span>LIVE</span>
+              <span className="text-purple-400">PREDICT (+24h)</span>
+            </div>
+            <input 
+              type="range" 
+              min="0" 
+              max="24" 
+              value={predictionHours} 
+              onChange={(e) => setPredictionHours(parseInt(e.target.value))}
+              className="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-purple-500"
+            />
           </div>
         </div>
 
@@ -104,7 +154,7 @@ const Analytics = () => {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={vehicleData}
+                  data={displayVehicleData}
                   cx="50%"
                   cy="45%"
                   innerRadius={60}
@@ -113,7 +163,7 @@ const Analytics = () => {
                   dataKey="value"
                   stroke="none"
                 >
-                  {vehicleData.map((entry, index) => (
+                  {displayVehicleData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
@@ -128,7 +178,9 @@ const Analytics = () => {
             {/* Center label */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none pb-8">
                <div className="text-center">
-                 <div className="text-2xl font-bold text-white font-mono">9.5k</div>
+                 <div className="text-2xl font-bold text-white font-mono">
+                   {(displayVehicleData.reduce((acc, curr) => acc + curr.value, 0) / 1000).toFixed(1)}k
+                 </div>
                  <div className="text-[10px] text-gray-400">TOTAL</div>
                </div>
             </div>

@@ -1,8 +1,11 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Video, Server, Activity, Shield } from 'lucide-react';
 import CameraFeed from '../components/CameraFeed';
+import NodeSelector from '../components/NodeSelector';
 
 const Cameras = () => {
+  const [selectedNode, setSelectedNode] = useState('ALL');
 
   return (
     <motion.div
@@ -20,12 +23,15 @@ const Cameras = () => {
           <p className="text-gray-400 text-sm mt-1">Multi-node live streaming with active YOLOv8 object detection</p>
         </div>
         
-        <div className="flex items-center gap-4 w-full md:w-auto">
-          <div className="glass-panel px-4 py-2 rounded-lg border-cyan-500/30 flex items-center gap-3">
-            <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></div>
-            <div className="flex flex-col">
-              <span className="text-[10px] text-gray-400 font-mono">BANDWIDTH</span>
-              <span className="text-sm font-bold text-cyan-400 font-mono">1.4 GB/s</span>
+        <div className="flex flex-col items-end gap-3 w-full md:w-auto">
+          <NodeSelector selectedNode={selectedNode} onSelectNode={setSelectedNode} />
+          <div className="flex items-center gap-4 w-full md:w-auto">
+            <div className="glass-panel px-4 py-2 rounded-lg border-cyan-500/30 flex items-center gap-3">
+              <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></div>
+              <div className="flex flex-col">
+                <span className="text-[10px] text-gray-400 font-mono">BANDWIDTH</span>
+                <span className="text-sm font-bold text-cyan-400 font-mono">{(1.4 / (selectedNode === 'ALL' ? 1 : 4)).toFixed(2)} GB/s</span>
+              </div>
             </div>
           </div>
         </div>
@@ -55,14 +61,14 @@ const Cameras = () => {
         </div>
       </div>
       
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-[600px]">
+      <div className={`flex-1 grid grid-cols-1 ${selectedNode === 'ALL' ? 'lg:grid-cols-2' : ''} gap-6 min-h-[600px]`}>
         {/* Nodes */}
-        <CameraFeed activeNode={1} />
+        {(selectedNode === 'ALL' || selectedNode === 'NODE 1') && <CameraFeed activeNode={1} />}
         
         {/* Other Nodes */}
-        <CameraFeed activeNode={2} />
-        <CameraFeed activeNode={3} />
-        <CameraFeed activeNode={4} />
+        {(selectedNode === 'ALL' || selectedNode === 'NODE 2') && <CameraFeed activeNode={2} />}
+        {(selectedNode === 'ALL' || selectedNode === 'NODE 3') && <CameraFeed activeNode={3} />}
+        {(selectedNode === 'ALL' || selectedNode === 'NODE 4') && <CameraFeed activeNode={4} />}
       </div>
     </motion.div>
   );

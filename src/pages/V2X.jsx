@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { RadioReceiver, Leaf, Wifi, Zap, Hexagon } from 'lucide-react';
+import NodeSelector from '../components/NodeSelector';
 
 const V2X = () => {
   const [data, setData] = useState([]);
   const [connections, setConnections] = useState([]);
+  const [selectedNode, setSelectedNode] = useState('ALL');
 
   // Generate carbon footprint data
   useEffect(() => {
@@ -67,18 +69,29 @@ const V2X = () => {
           <p className="text-gray-400 text-sm mt-1">Vehicle-to-Everything communication and Carbon Emission Tracking</p>
         </div>
         
-        <div className="glass-panel px-4 py-2 rounded-lg border-green-500/30 flex items-center gap-3 hidden md:flex">
-          <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
-          <span className="text-xs text-gray-300 font-mono">NETWORK: 5G DSRC ACTIVE</span>
+        <div className="flex flex-col items-end gap-3 w-full md:w-auto">
+          <NodeSelector selectedNode={selectedNode} onSelectNode={setSelectedNode} />
+          <div className="glass-panel px-4 py-2 rounded-lg border-green-500/30 flex items-center gap-3 hidden md:flex">
+            <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+            <span className="text-xs text-gray-300 font-mono">NETWORK: 5G DSRC ACTIVE</span>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 shrink-0">
+      {/* Variables to map adjusted data for UI */}
+      {(() => {
+        const nodeFactor = selectedNode === 'ALL' ? 1 : parseInt(selectedNode.replace('NODE ', '')) * 0.3 + 0.4;
+        const displayData = data.map(d => ({ ...d, emissionsSaved: Math.round(d.emissionsSaved * nodeFactor) }));
+        const displayConnections = connections.filter(c => selectedNode === 'ALL' ? true : (c.id.charCodeAt(0) % 4) + 1 === parseInt(selectedNode.replace('NODE ', '')));
+
+        return (
+          <>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 shrink-0">
         <div className="glass-panel p-6 rounded-2xl border-green-500/30 flex items-center justify-between">
            <div>
              <p className="text-sm text-gray-400 font-mono mb-1 flex items-center gap-2"><Leaf size={14} className="text-green-400"/> TOTAL CO2 SAVED</p>
              <h3 className="text-4xl font-bold text-white font-mono">
-               {data.length > 0 ? (data[data.length - 1].emissionsSaved / 10).toFixed(1) : '0'} <span className="text-lg text-gray-500">kg</span>
+               {displayData.length > 0 ? (displayData[displayData.length - 1].emissionsSaved / 10).toFixed(1) : '0'} <span className="text-lg text-gray-500">kg</span>
              </h3>
            </div>
            <div className="w-16 h-16 rounded-full border-4 border-green-500/20 flex items-center justify-center border-t-green-500 animate-spin" style={{ animationDuration: '3s' }}>
@@ -91,7 +104,7 @@ const V2X = () => {
            <div>
              <p className="text-sm text-gray-400 font-mono mb-1 flex items-center gap-2"><Wifi size={14} className="text-cyan-400"/> V2X CONNECTIONS</p>
              <h3 className="text-4xl font-bold text-white font-mono">
-               12,492 <span className="text-lg text-gray-500">nodes</span>
+               {Math.round(12492 * nodeFactor).toLocaleString()} <span className="text-lg text-gray-500">nodes</span>
              </h3>
            </div>
            <div className="relative flex justify-center items-center">
@@ -116,7 +129,7 @@ const V2X = () => {
           <h3 className="text-sm font-bold text-gray-300 tracking-widest mb-4">CARBON EMISSIONS REDUCTION TREND</h3>
           <div className="flex-1">
              <ResponsiveContainer width="100%" height="100%">
-               <AreaChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+               <AreaChart data={displayData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                  <defs>
                    <linearGradient id="colorEmissions" x1="0" y1="0" x2="0" y2="1">
                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.5}/>
@@ -143,7 +156,7 @@ const V2X = () => {
             <div className="absolute bottom-0 left-0 w-full h-8 bg-gradient-to-t from-black/50 to-transparent z-10 pointer-events-none"></div>
             
             <AnimatePresence>
-              {connections.map((conn) => (
+              {displayConnections.map((conn) => (
                 <motion.div 
                   key={conn.id}
                   initial={{ opacity: 0, x: 20 }}
@@ -170,6 +183,9 @@ const V2X = () => {
           </div>
         </div>
       </div>
+          </>
+        );
+      })()}
     </motion.div>
   );
 };

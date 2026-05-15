@@ -67,6 +67,10 @@ const CameraFeed = ({ activeNode = 4, initialVideoSrc = "https://videos.pexels.c
         const x = Math.random() * (100 - width);
         const y = Math.random() * (60 - height) + 30; 
 
+        const typeRand = Math.random();
+        const type = typeRand > 0.8 ? 'truck' : typeRand > 0.6 ? 'pedestrian' : 'car';
+        const speed = type === 'pedestrian' ? Math.floor(Math.random() * 5) + 2 : Math.floor(Math.random() * 60) + 10;
+
         return {
           id: Math.random().toString(36).substring(7),
           x,
@@ -74,7 +78,8 @@ const CameraFeed = ({ activeNode = 4, initialVideoSrc = "https://videos.pexels.c
           width,
           height,
           confidence: Math.floor(Math.random() * 10) + 90, 
-          type: Math.random() > 0.8 ? 'truck' : 'car'
+          type,
+          speed
         };
       });
       setBoxes(newBoxes);
@@ -138,10 +143,17 @@ const CameraFeed = ({ activeNode = 4, initialVideoSrc = "https://videos.pexels.c
         <div className="absolute inset-0 bg-[linear-gradient(transparent_50%,rgba(0,0,0,0.15)_50%)] bg-[length:100%_4px] pointer-events-none z-10 mix-blend-overlay"></div>
         
         {/* Bounding Boxes */}
-        {boxes.map(box => (
+        {boxes.map(box => {
+          const colorClass = box.type === 'pedestrian' ? 'border-yellow-500 bg-yellow-500/10' : 
+                             box.type === 'truck' ? 'border-orange-500 bg-orange-500/10' : 
+                             'border-green-500 bg-green-500/10';
+          const badgeClass = box.type === 'pedestrian' ? 'bg-yellow-500' : 
+                             box.type === 'truck' ? 'bg-orange-500' : 
+                             'bg-green-500';
+          return (
           <div
             key={box.id}
-            className="absolute border-2 border-green-500 bg-green-500/10 transition-all duration-300 ease-linear z-20 shadow-[0_0_10px_rgba(34,197,94,0.3)]"
+            className={`absolute border-2 transition-all duration-300 ease-linear z-20 shadow-[0_0_10px_rgba(0,0,0,0.5)] ${colorClass}`}
             style={{
               left: `${box.x}%`,
               top: `${box.y}%`,
@@ -149,11 +161,16 @@ const CameraFeed = ({ activeNode = 4, initialVideoSrc = "https://videos.pexels.c
               height: `${box.height}%`,
             }}
           >
-            <div className="bg-green-500 text-black text-[10px] font-mono px-1.5 py-0.5 font-bold whitespace-nowrap absolute -top-5 left-[-2px] rounded-t-sm">
-              {box.type} {box.confidence}%
+            <div className={`text-black text-[10px] font-mono px-1.5 py-0.5 font-bold whitespace-nowrap absolute -top-5 left-[-2px] rounded-t-sm ${badgeClass}`}>
+              {box.type.toUpperCase()} {box.confidence}% | {box.speed} km/h
+            </div>
+            
+            {/* Speed Vector line */}
+            <div className={`absolute top-1/2 left-1/2 w-0.5 opacity-70 origin-bottom -translate-x-1/2 -translate-y-full ${badgeClass}`} style={{ height: `${box.speed}px` }}>
+               <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-inherit"></div>
             </div>
           </div>
-        ))}
+        )})}
         
         <div className="absolute bottom-2 left-2 z-20 flex items-center gap-1.5 bg-black/70 px-2 py-1 rounded border border-white/10 backdrop-blur-md">
           <AlertCircle size={12} className="text-green-400" />

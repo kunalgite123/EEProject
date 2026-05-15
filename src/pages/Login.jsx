@@ -2,30 +2,28 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Shield, Lock, User, Cpu, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
-const Login = ({ setIsAuthenticated }) => {
+const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
-    // Simulate network delay and authentication check
-    setTimeout(() => {
-      if (username.trim().toLowerCase() === 'admin' && password === 'admin') {
-        localStorage.setItem('isAdminAuthenticated', 'true');
-        setIsAuthenticated(true);
-        navigate('/');
-      } else {
-        setError('ACCESS DENIED: Invalid credentials (try admin / admin)');
-        setIsLoading(false);
-      }
-    }, 1200);
+    const result = await login(username, password);
+    if (result.success) {
+      navigate('/dashboard');
+    } else {
+      setError(result.message);
+      setIsLoading(false);
+    }
   };
 
   return (

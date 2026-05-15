@@ -1,4 +1,4 @@
-import { Map, BarChart2, ShieldAlert, Cpu, Video, Car, RadioReceiver } from 'lucide-react';
+import { Map, BarChart2, ShieldAlert, Cpu, Video, Car, RadioReceiver, Database } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { NavLink } from 'react-router-dom';
 
@@ -11,6 +11,7 @@ const Sidebar = () => {
     { icon: <Cpu size={22} />, label: "AI Models", path: "/ai-models" },
     { icon: <Car size={22} />, label: "Vehicles", path: "/vehicles" },
     { icon: <RadioReceiver size={22} />, label: "V2X Signals", path: "/v2x" },
+    { icon: <Database size={22} />, label: "Audit Logs", path: "/audit-logs" },
   ];
 
   return (

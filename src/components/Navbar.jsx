@@ -1,5 +1,6 @@
 import { Activity, Bell, Settings, User } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 
 const Navbar = () => {
   return (
@@ -24,16 +25,16 @@ const Navbar = () => {
         </div>
         
         <div className="flex items-center gap-4 text-gray-400">
-          <button className="hover:text-cyan-400 transition-colors relative">
+          <Link to="/notifications" className="hover:text-cyan-400 transition-colors relative block">
             <Bell size={20} />
             <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-          </button>
-          <button className="hover:text-cyan-400 transition-colors">
+          </Link>
+          <Link to="/settings" className="hover:text-cyan-400 transition-colors block">
             <Settings size={20} />
-          </button>
-          <button className="hover:text-cyan-400 transition-colors ml-2 bg-gray-800/50 p-1.5 rounded-full border border-gray-700">
+          </Link>
+          <Link to="/profile" className="hover:text-cyan-400 transition-colors ml-2 bg-gray-800/50 p-1.5 rounded-full border border-gray-700 block">
             <User size={20} />
-          </button>
+          </Link>
         </div>
       </div>
     </nav>

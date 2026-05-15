@@ -6,7 +6,7 @@ import { Siren, Cpu } from 'lucide-react';
 import axios from 'axios';
 
 const Dashboard = () => {
-  const { setShowNotification, setDetectedVehicle } = useOutletContext();
+  const { setShowNotification, setDetectedVehicle, autoRefresh, soundAlerts } = useOutletContext();
   const [isDetecting, setIsDetecting] = useState(false);
   const [activeCameraNode, setActiveCameraNode] = useState(1);
   const [simulationActive, setSimulationActive] = useState(false);
@@ -14,11 +14,12 @@ const Dashboard = () => {
 
   // Cycle through nodes 1 to 4 every 10 seconds
   useEffect(() => {
+    if (!autoRefresh) return;
     const interval = setInterval(() => {
       setActiveCameraNode((prev) => (prev >= 4 ? 1 : prev + 1));
     }, 10000);
     return () => clearInterval(interval);
-  }, []);
+  }, [autoRefresh]);
 
   const simulateEmergencyDetection = async () => {
     if (simulationActive) return;
@@ -37,11 +38,35 @@ const Dashboard = () => {
       if (res.data.emergency_detected) {
         setDetectedVehicle("AMBULANCE (EVPS TRIGGERED)");
         setShowNotification(true);
+        if (soundAlerts) {
+          const audio = new (window.AudioContext || window.webkitAudioContext)();
+          const osc = audio.createOscillator();
+          const gainNode = audio.createGain();
+          osc.connect(gainNode);
+          gainNode.connect(audio.destination);
+          osc.type = 'square';
+          osc.frequency.value = 800;
+          gainNode.gain.setValueAtTime(0.1, audio.currentTime);
+          osc.start();
+          setTimeout(() => osc.stop(), 500);
+        }
       }
     } catch {
       console.warn("Backend API offline, using local simulation");
       setDetectedVehicle("AMBULANCE (EVPS PREEMPTION)");
       setShowNotification(true);
+      if (soundAlerts) {
+        const audio = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audio.createOscillator();
+        const gainNode = audio.createGain();
+        osc.connect(gainNode);
+        gainNode.connect(audio.destination);
+        osc.type = 'square';
+        osc.frequency.value = 800;
+        gainNode.gain.setValueAtTime(0.1, audio.currentTime);
+        osc.start();
+        setTimeout(() => osc.stop(), 500);
+      }
     } finally {
       setIsDetecting(false);
       // Let the ambulance run its course for 10 seconds before turning off
