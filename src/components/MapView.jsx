@@ -5,6 +5,7 @@ import { nashikCenter, initialSignals, emergencyRouteCoordinates } from '../data
 import SignalMarker from './SignalMarker';
 import EmergencyRoute from './EmergencyRoute';
 import axios from 'axios';
+import { Maximize, Minimize } from 'lucide-react';
 
 // Fix for default marker icons in React Leaflet
 import L from 'leaflet';
@@ -19,11 +20,12 @@ let DefaultIcon = L.icon({
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
-const MapView = ({ onSignalClick }) => {
+const MapView = ({ onSignalClick, activeNode, emergencyTriggered, weatherState = 'CLEAR' }) => {
   const [signals, setSignals] = useState(initialSignals);
   const [routeCoords, setRouteCoords] = useState(emergencyRouteCoordinates);
   const [activeEmergency, setActiveEmergency] = useState(false);
   const [backendError, setBackendError] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Poll backend for real-time traffic and route data
   useEffect(() => {
@@ -80,8 +82,23 @@ const MapView = ({ onSignalClick }) => {
     return () => clearInterval(interval);
   }, []);
 
+  // EVPS Override
+  useEffect(() => {
+    if (emergencyTriggered) {
+      setSignals(prev => prev.map(sig => ({
+        ...sig,
+        color: 'green',
+        timer: 99
+      })));
+    }
+  }, [emergencyTriggered]);
+
   return (
-    <div className="w-full h-full rounded-2xl overflow-hidden border border-cyan-500/30 neon-border relative z-0">
+    <div className={
+      isFullscreen 
+        ? "fixed inset-0 z-[1000] bg-black" 
+        : "w-full h-full rounded-2xl overflow-hidden border border-cyan-500/30 neon-border relative z-0"
+    }>
       <MapContainer 
         center={nashikCenter} 
         zoom={14} 
@@ -90,19 +107,52 @@ const MapView = ({ onSignalClick }) => {
         attributionControl={false}
       >
         <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
         />
         
         {signals.map(signal => (
-          <SignalMarker key={signal.id} signal={signal} onClick={() => onSignalClick && onSignalClick(signal.id)} />
+          <SignalMarker 
+            key={signal.id} 
+            signal={{
+              ...signal, 
+              // Modify congestion based on weather
+              congestion: weatherState === 'RAIN' ? Math.min(100, signal.congestion + 30) : 
+                          weatherState === 'FOG' ? Math.min(100, signal.congestion + 15) : signal.congestion
+            }} 
+            isActive={signal.id === activeNode}
+            onClick={() => onSignalClick && onSignalClick(signal.id)} 
+          />
         ))}
 
-        <EmergencyRoute routeCoordinates={routeCoords} />
+        {(activeEmergency || emergencyTriggered) && <EmergencyRoute routeCoordinates={routeCoords} />}
       </MapContainer>
       
+      {/* Weather Overlays */}
+      {weatherState === 'RAIN' && (
+        <div className="absolute inset-0 z-[300] pointer-events-none overflow-hidden mix-blend-screen opacity-40">
+          <div className="w-full h-full bg-[url('https://cdn.pixabay.com/photo/2014/10/25/08/30/rain-502596_1280.jpg')] bg-cover opacity-50 mix-blend-overlay animate-pulse"></div>
+          <div className="absolute inset-0 bg-blue-900/20 backdrop-blur-[1px]"></div>
+        </div>
+      )}
+      
+      {weatherState === 'FOG' && (
+        <div className="absolute inset-0 z-[300] pointer-events-none bg-gray-500/30 backdrop-blur-[4px] mix-blend-hard-light transition-all duration-1000"></div>
+      )}
+      
       {/* Overlay UI elements */}
-      <div className="absolute top-4 right-4 z-[400] flex flex-col gap-2">
-        {backendError && (
+      <div className="absolute top-4 right-4 z-[400] flex flex-col items-end gap-2 pointer-events-none">
+        <div className="pointer-events-auto">
+          <button 
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            className="glass-panel p-2 rounded-lg border-cyan-500/30 hover:bg-cyan-500/20 text-cyan-400 mb-2 transition-colors cursor-pointer"
+            title={isFullscreen ? "Exit Full Screen" : "Full Screen Map"}
+          >
+            {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
+          </button>
+        </div>
+
+        <div className="pointer-events-auto flex flex-col gap-2 items-end">
+          {backendError && (
           <div className="glass-panel px-4 py-2 rounded-lg flex items-center gap-2 border-yellow-500/30">
             <span className="text-yellow-400 font-mono text-xs font-bold">USING LOCAL MOCK</span>
           </div>
@@ -119,6 +169,7 @@ const MapView = ({ onSignalClick }) => {
             <span className="text-white font-mono text-sm font-bold tracking-widest">NORMAL TRAFFIC</span>
           </div>
         )}
+        </div>
       </div>
     </div>
   );

@@ -41,13 +41,7 @@
   background: #111;
 }
 
-/* Custom dark theme for Leaflet map tiles */
-.leaflet-layer,
-.leaflet-control-zoom-in,
-.leaflet-control-zoom-out,
-.leaflet-control-attribution {
-  filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
-}
+/* Standard map theme */
 
 .pulse-animation {
   animation: pulse 2s infinite;

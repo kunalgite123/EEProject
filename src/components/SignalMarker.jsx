@@ -1,7 +1,7 @@
 import { Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 
-const createIcon = (color, id) => {
+const createIcon = (color, id, isActive) => {
   const getGlowColor = () => {
     switch(color) {
       case 'green': return 'rgba(34, 197, 94, 0.6)';
@@ -12,14 +12,14 @@ const createIcon = (color, id) => {
   };
 
   const html = `
-    <div class="relative flex items-center justify-center w-12 h-12">
+    <div class="relative flex items-center justify-center w-12 h-12 ${isActive ? 'scale-125 transition-transform duration-300' : ''}">
       <div class="absolute inset-0 rounded-full animate-ping opacity-50" style="background-color: ${getGlowColor()}"></div>
-      <div class="relative w-8 h-8 bg-gray-900 border-2 border-gray-700 rounded-lg flex flex-col items-center justify-center shadow-lg overflow-hidden">
+      <div class="relative w-8 h-8 bg-gray-900 border-2 ${isActive ? 'border-cyan-400 shadow-[0_0_15px_#22d3ee]' : 'border-gray-700'} rounded-lg flex flex-col items-center justify-center shadow-lg overflow-hidden">
         <div class="w-2 h-2 rounded-full mb-0.5 ${color === 'red' ? 'bg-red-500 shadow-[0_0_8px_#ef4444]' : 'bg-gray-700'}"></div>
         <div class="w-2 h-2 rounded-full mb-0.5 ${color === 'yellow' ? 'bg-yellow-500 shadow-[0_0_8px_#eab308]' : 'bg-gray-700'}"></div>
         <div class="w-2 h-2 rounded-full ${color === 'green' ? 'bg-green-500 shadow-[0_0_8px_#22c55e]' : 'bg-gray-700'}"></div>
       </div>
-      <div class="absolute -top-2 -right-2 bg-gray-800 text-white text-[10px] font-bold px-1 rounded border border-gray-600">
+      <div class="absolute -top-2 -right-2 ${isActive ? 'bg-cyan-500' : 'bg-gray-800'} text-white text-[10px] font-bold px-1 rounded border ${isActive ? 'border-cyan-300' : 'border-gray-600'}">
         ${id}
       </div>
     </div>
@@ -34,7 +34,7 @@ const createIcon = (color, id) => {
   });
 };
 
-const SignalMarker = ({ signal, onClick }) => {
+const SignalMarker = ({ signal, onClick, isActive }) => {
   const getCongestionColor = (val) => {
     if (val > 80) return 'text-red-500';
     if (val > 50) return 'text-yellow-500';
@@ -44,7 +44,7 @@ const SignalMarker = ({ signal, onClick }) => {
   return (
     <Marker 
       position={signal.position} 
-      icon={createIcon(signal.color, signal.id)}
+      icon={createIcon(signal.color, signal.id, isActive)}
       eventHandlers={{ click: onClick }}
     >
       <Popup className="glass-popup">

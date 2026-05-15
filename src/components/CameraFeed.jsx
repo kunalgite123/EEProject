@@ -1,34 +1,70 @@
-import { useState, useEffect } from 'react';
-import { Camera, AlertCircle, Maximize2 } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Camera, AlertCircle, Maximize2, UploadCloud, Link as LinkIcon, Check, X } from 'lucide-react';
 
-const CameraFeed = ({ activeNode = 4 }) => {
+const CameraFeed = ({ activeNode = 4, initialVideoSrc = "https://videos.pexels.com/video-files/853889/853889-hd_1920_1080_25fps.mp4" }) => {
+  const [videoSrc, setVideoSrc] = useState(initialVideoSrc);
+  const [customTitle, setCustomTitle] = useState(null);
   const [boxes, setBoxes] = useState([]);
   const [isSwitching, setIsSwitching] = useState(false);
+  const [isYoutube, setIsYoutube] = useState(false);
+  const [showLinkInput, setShowLinkInput] = useState(false);
+  const [linkInputVal, setLinkInputVal] = useState('');
+  const fileInputRef = useRef(null);
 
-  // Simulate camera switch effect when activeNode changes
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setVideoSrc(url);
+      setIsYoutube(false);
+      setCustomTitle(`CUSTOM FEED - ${file.name.toUpperCase()}`);
+    }
+  };
+
+  const handleLinkSubmit = (e) => {
+    e.preventDefault();
+    if (!linkInputVal.trim()) return;
+    
+    let finalUrl = linkInputVal.trim();
+    let isYt = false;
+
+    // Simple youtube URL regex
+    const ytRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
+    const match = finalUrl.match(ytRegex);
+    
+    if (match && match[1]) {
+      // Add autoplay, mute, loop, and playlist (required for loop) params
+      finalUrl = `https://www.youtube.com/embed/${match[1]}?autoplay=1&mute=1&controls=0&loop=1&playlist=${match[1]}`;
+      isYt = true;
+    }
+    
+    setVideoSrc(finalUrl);
+    setIsYoutube(isYt);
+    setCustomTitle(`LINK FEED`);
+    setShowLinkInput(false);
+    setLinkInputVal('');
+  };
+
+  // Simulate camera switch effect when activeNode or videoSrc changes
   useEffect(() => {
     setIsSwitching(true);
-    // Randomize video a bit by clearing boxes
     setBoxes([]);
     const timer = setTimeout(() => {
       setIsSwitching(false);
-    }, 500); // 500ms static/switch effect
+    }, 500); 
     return () => clearTimeout(timer);
-  }, [activeNode]);
+  }, [activeNode, videoSrc]);
 
   // Simulate AI Bounding Boxes for the traffic video
   useEffect(() => {
     if (isSwitching) return;
     
     const interval = setInterval(() => {
-      // Simulate random car detections that fit well on a road video
-      const numCars = Math.floor(Math.random() * 5) + 3; // 3 to 7 objects
+      const numCars = Math.floor(Math.random() * 5) + 3; 
       const newBoxes = Array.from({ length: numCars }).map(() => {
-        // Cars should be slightly smaller as they are further away
-        const width = Math.random() * 12 + 5; // 5% to 17% width
-        const height = Math.random() * 10 + 5; // 5% to 15% height
+        const width = Math.random() * 12 + 5; 
+        const height = Math.random() * 10 + 5; 
         const x = Math.random() * (100 - width);
-        // Keep them generally in the lower 2/3rds of the screen (on the road)
         const y = Math.random() * (60 - height) + 30; 
 
         return {
@@ -37,12 +73,12 @@ const CameraFeed = ({ activeNode = 4 }) => {
           y,
           width,
           height,
-          confidence: Math.floor(Math.random() * 10) + 90, // 90% to 99%
+          confidence: Math.floor(Math.random() * 10) + 90, 
           type: Math.random() > 0.8 ? 'truck' : 'car'
         };
       });
       setBoxes(newBoxes);
-    }, 900); // Update every 900ms 
+    }, 900); 
 
     return () => clearInterval(interval);
   }, [isSwitching]);
@@ -52,7 +88,9 @@ const CameraFeed = ({ activeNode = 4 }) => {
       <div className="flex justify-between items-center mb-3 shrink-0">
         <div className="flex items-center gap-2">
           <Camera size={16} className="text-cyan-400" />
-          <h3 className="text-gray-300 font-bold text-sm tracking-widest">LIVE CCTV - NODE {activeNode}</h3>
+          <h3 className="text-gray-300 font-bold text-sm tracking-widest">
+            {customTitle || `LIVE CCTV - NODE ${activeNode}`}
+          </h3>
         </div>
         <div className="flex items-center gap-2">
           <span className="flex h-2 w-2 relative">
@@ -68,21 +106,30 @@ const CameraFeed = ({ activeNode = 4 }) => {
       <div className="flex-1 relative rounded-xl overflow-hidden bg-black border border-gray-700/50 min-h-[150px] flex items-center justify-center">
         
         {/* Looping Traffic Video Element */}
-        <video 
-          autoPlay 
-          loop
-          muted
-          playsInline
-          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${isSwitching ? 'opacity-20' : 'opacity-90'}`}
-          src="https://videos.pexels.com/video-files/853889/853889-hd_1920_1080_25fps.mp4"
-        />
+        {isYoutube ? (
+          <iframe 
+            src={videoSrc}
+            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${isSwitching ? 'opacity-20' : 'opacity-90'} pointer-events-none`}
+            allow="autoplay; encrypted-media"
+            frameBorder="0"
+          />
+        ) : (
+          <video 
+            autoPlay 
+            loop
+            muted
+            playsInline
+            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${isSwitching ? 'opacity-20' : 'opacity-90'}`}
+            src={videoSrc}
+          />
+        )}
         
         {/* Switching Effect Overlay */}
         {isSwitching && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-30">
             <div className="text-cyan-400 font-mono text-xs flex flex-col items-center">
                <Camera className="animate-pulse mb-2" size={24} />
-               <span>CONNECTING TO NODE {activeNode}...</span>
+               <span>{customTitle ? 'INITIALIZING FEED...' : `CONNECTING TO NODE ${activeNode}...`}</span>
             </div>
           </div>
         )}
@@ -115,9 +162,53 @@ const CameraFeed = ({ activeNode = 4 }) => {
           </span>
         </div>
         
-        <button className="absolute top-2 right-2 z-20 p-1.5 bg-black/50 hover:bg-black/80 rounded-md text-white/70 hover:text-white transition-colors border border-white/10 backdrop-blur-sm">
-          <Maximize2 size={14} />
-        </button>
+        <div className="absolute top-2 right-2 z-20 flex flex-col gap-2 items-end">
+          <div className="flex gap-2">
+            <button 
+              onClick={() => setShowLinkInput(!showLinkInput)}
+              className="p-1.5 bg-black/50 hover:bg-cyan-500/50 rounded-md text-white/70 hover:text-white transition-colors border border-white/10 backdrop-blur-sm group"
+              title="Add Feed via Link"
+            >
+              <LinkIcon size={14} className="group-hover:text-cyan-300" />
+            </button>
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              className="p-1.5 bg-black/50 hover:bg-purple-500/50 rounded-md text-white/70 hover:text-white transition-colors border border-white/10 backdrop-blur-sm group"
+              title="Upload Custom Feed"
+            >
+              <UploadCloud size={14} className="group-hover:text-purple-300" />
+            </button>
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handleFileUpload} 
+              accept="video/*" 
+              className="hidden" 
+            />
+            <button className="p-1.5 bg-black/50 hover:bg-black/80 rounded-md text-white/70 hover:text-white transition-colors border border-white/10 backdrop-blur-sm">
+              <Maximize2 size={14} />
+            </button>
+          </div>
+          
+          {showLinkInput && (
+            <form onSubmit={handleLinkSubmit} className="flex items-center gap-1 bg-black/80 p-1.5 rounded-lg border border-cyan-500/50 backdrop-blur-md">
+              <input 
+                type="text" 
+                value={linkInputVal}
+                onChange={(e) => setLinkInputVal(e.target.value)}
+                placeholder="Paste YT or MP4 link..." 
+                className="bg-transparent text-xs text-white placeholder-gray-500 outline-none w-32 px-1"
+                autoFocus
+              />
+              <button type="submit" className="p-1 text-green-400 hover:bg-green-400/20 rounded">
+                <Check size={12} />
+              </button>
+              <button type="button" onClick={() => setShowLinkInput(false)} className="p-1 text-red-400 hover:bg-red-400/20 rounded">
+                <X size={12} />
+              </button>
+            </form>
+          )}
+        </div>
       </div>
     </div>
   );
